@@ -150,7 +150,29 @@ Generate a gear checklist based on trail and conditions:
 rando checklist "Le Scotora"
 ```
 
-Adapts to trail length, season, and current weather.
+**Gear calculation:**
+- Water: `(estimated_hours / 2)` liters, minimum 1L
+- Headlamp: Added if daylight hours < estimated hours + 1
+- Clothing: Based on season (winter: Nov-Mar, summer: Jun-Aug)
+- Rain gear: Added if weather code indicates rain (61-82)
+
+**Conditions rating:**
+- **Bad**: Thunderstorm OR (rain > 0.5mm AND wind > 20 km/h)
+- **Okay**: Rain > 0.5mm OR wind > 20 km/h
+- **Excellent**: Clear/partly cloudy (code ≤ 3) AND wind < 15 km/h
+- **Good**: All other conditions
+
+**Weather codes:**
+- 0: Clear sky
+- 1-3: Partly cloudy
+- 45, 48: Foggy
+- 51, 53, 55: Drizzle
+- 61, 63, 65: Rain
+- 71, 73, 75: Snow
+- 80-82: Rain showers
+- 85, 86: Snow showers
+- 95: Thunderstorm
+- 96, 99: Thunderstorm with hail
 
 ## Hunt
 
