@@ -149,7 +149,7 @@ fn ui(f: &mut Frame, trail: &Trail) {
     .alignment(Alignment::Left);
     f.render_widget(info, card_layout[1]);
 
-    let elevation_data = generate_elevation_data(trail.length_km);
+    let (elevation_data, total_gain, total_loss) = generate_elevation_data(trail);
     let elevation_sparkline = Sparkline::default()
         .block(
             Block::default()
@@ -163,8 +163,14 @@ fn ui(f: &mut Frame, trail: &Trail) {
     f.render_widget(elevation_sparkline, card_layout[2]);
 
     let stats_text = Line::from(vec![
-        Span::styled("↑ Total gain: 340m  ", Style::default().fg(Color::Green)),
-        Span::styled("↓ Total loss: 340m", Style::default().fg(Color::Red)),
+        Span::styled(
+            format!("↑ Total gain: {}m  ", total_gain),
+            Style::default().fg(Color::Green),
+        ),
+        Span::styled(
+            format!("↓ Total loss: {}m", total_loss),
+            Style::default().fg(Color::Red),
+        ),
     ]);
     let stats = Paragraph::new(stats_text)
         .block(
@@ -302,23 +308,64 @@ fn ui(f: &mut Frame, trail: &Trail) {
     f.render_widget(help, vertical[2]);
 }
 
-fn generate_elevation_data(_length_km: f64) -> Vec<u64> {
-    let elevations = [160.0, 280.0, 400.0, 520.0, 400.0];
-    let num_points = 20;
+fn generate_elevation_data(trail: &Trail) -> (Vec<u64>, u32, u32) {
+    let num_points = 30;
     let mut data = Vec::new();
+    let mut elevations = Vec::new();
+
+    let seed = simple_hash(&trail.name);
+    let difficulty_multiplier = match trail.difficulty.to_lowercase().as_str() {
+        "difficile" => 1.5,
+        "intermédiaire" | "intermediaire" => 1.2,
+        _ => 1.0,
+    };
+
+    let base_elevation = 200.0;
+    let max_elevation_gain = 400.0 * difficulty_multiplier;
+    let length_factor = (trail.length_km / 10.0).clamp(0.5, 2.0);
 
     for i in 0..num_points {
         let t = i as f64 / (num_points - 1) as f64;
-        let index = (t * (elevations.len() - 1) as f64) as usize;
-        let next_index = (index + 1).min(elevations.len() - 1);
-        let local_t = (t * (elevations.len() - 1) as f64) - index as f64;
+        let progress = t * trail.length_km;
 
-        let elev = elevations[index] * (1.0 - local_t) + elevations[next_index] * local_t;
-        let normalized = ((elev - 160.0) / 360.0 * 100.0) as u64;
+        let noise1 = (seed as f64 * 0.1 + progress * 0.3).sin();
+        let noise2 = (seed as f64 * 0.2 + progress * 0.5).cos();
+        let noise3 = (seed as f64 * 0.3 + progress * 0.7).sin();
+
+        let elevation_variation = noise1 * 0.4 + noise2 * 0.3 + noise3 * 0.3;
+
+        let peak_position = 0.4 + (seed % 100) as f64 / 200.0;
+        let peak_effect = (-((t - peak_position) * 3.0).powi(2)).exp() * 0.6;
+
+        let elevation = base_elevation
+            + elevation_variation * max_elevation_gain * length_factor
+            + peak_effect * max_elevation_gain * 0.8;
+
+        elevations.push(elevation);
+
+        let normalized = ((elevation / (base_elevation + max_elevation_gain * 2.0)) * 100.0)
+            .clamp(5.0, 95.0) as u64;
         data.push(normalized);
     }
 
-    data
+    let mut total_gain = 0.0;
+    let mut total_loss = 0.0;
+
+    for i in 1..elevations.len() {
+        let diff = elevations[i] - elevations[i - 1];
+        if diff > 0.0 {
+            total_gain += diff;
+        } else {
+            total_loss += diff.abs();
+        }
+    }
+
+    (data, total_gain as u32, total_loss as u32)
+}
+
+fn simple_hash(s: &str) -> u32 {
+    s.bytes()
+        .fold(0u32, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u32))
 }
 
 fn calculate_sun_times(lat: f64, lng: f64) -> (String, String, String) {
