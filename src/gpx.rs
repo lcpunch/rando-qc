@@ -1,8 +1,19 @@
+use crate::services::elevation::fetch_elevation;
 use crate::trails::Trail;
 use anyhow::Result;
 use std::fs;
 
 pub fn export_gpx(trail: &Trail, output_path: &str) -> Result<()> {
+    println!(
+        "Fetching elevation data for {} points...",
+        trail.coordinates_wgs84.len()
+    );
+
+    let elevations = fetch_elevation(&trail.coordinates_wgs84).unwrap_or_else(|e| {
+        eprintln!("Warning: Could not fetch elevation data: {}", e);
+        vec![0.0; trail.coordinates_wgs84.len()]
+    });
+
     let mut gpx = String::new();
 
     gpx.push_str("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
@@ -20,10 +31,11 @@ pub fn export_gpx(trail: &Trail, output_path: &str) -> Result<()> {
     gpx.push_str(&format!("    <name>{}</name>\n", escape_xml(&trail.name)));
     gpx.push_str("    <trkseg>\n");
 
-    for (lat, lng) in &trail.coordinates_wgs84 {
+    for (i, (lat, lng)) in trail.coordinates_wgs84.iter().enumerate() {
+        let ele = elevations.get(i).unwrap_or(&0.0);
         gpx.push_str(&format!(
-            "      <trkpt lat=\"{:.6}\" lon=\"{:.6}\"></trkpt>\n",
-            lat, lng
+            "      <trkpt lat=\"{:.6}\" lon=\"{:.6}\"><ele>{:.1}</ele></trkpt>\n",
+            lat, lng, ele
         ));
     }
 

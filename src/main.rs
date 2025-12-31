@@ -5,6 +5,7 @@ mod conditions;
 mod geo;
 mod gpx;
 mod icons;
+mod services;
 mod trails;
 mod weather;
 

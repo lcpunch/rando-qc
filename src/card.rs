@@ -1,4 +1,8 @@
+use crate::cache;
 use crate::icons::Icons;
+use crate::services::elevation::{
+    ElevationStats, calculate_elevation_stats, fetch_elevation, sample_coordinates,
+};
 use crate::trails::Trail;
 use anyhow::Result;
 use chrono::{Datelike, Local};
@@ -19,13 +23,17 @@ use std::f64::consts::PI;
 use std::io::{self, stdout};
 
 pub fn print_card(trail: &Trail) -> Result<()> {
+    // Fetch elevation data before entering TUI
+    println!("Fetching elevation data...");
+    let elevation_stats = get_trail_elevation(trail);
+
     enable_raw_mode()?;
     let mut stdout = stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let result = run_card_ui(&mut terminal, trail);
+    let result = run_card_ui(&mut terminal, trail, &elevation_stats);
 
     disable_raw_mode()?;
     execute!(
@@ -38,9 +46,13 @@ pub fn print_card(trail: &Trail) -> Result<()> {
     result
 }
 
-fn run_card_ui(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, trail: &Trail) -> Result<()> {
+fn run_card_ui(
+    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    trail: &Trail,
+    elevation_stats: &ElevationStats,
+) -> Result<()> {
     loop {
-        terminal.draw(|f| ui(f, trail))?;
+        terminal.draw(|f| ui(f, trail, elevation_stats))?;
 
         if let Event::Key(key) = event::read()? {
             match key.code {
@@ -52,7 +64,7 @@ fn run_card_ui(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, trail: &Tr
     Ok(())
 }
 
-fn ui(f: &mut Frame, trail: &Trail) {
+fn ui(f: &mut Frame, trail: &Trail, elevation_stats: &ElevationStats) {
     let size = f.size();
     let vertical = Layout::default()
         .direction(ratatui::layout::Direction::Vertical)
@@ -88,7 +100,6 @@ fn ui(f: &mut Frame, trail: &Trail) {
         ])
         .split(card_area);
 
-    let name_upper = trail.name.to_uppercase();
     let difficulty_display =
         if trail.difficulty.trim().is_empty() || trail.difficulty.eq_ignore_ascii_case("Unknown") {
             "Non spécifié"
@@ -105,13 +116,14 @@ fn ui(f: &mut Frame, trail: &Trail) {
 
     let (sunrise, sunset, daylight) = calculate_sun_times(trail.lat, trail.lng);
 
-    let title_block = Block::default()
-        .borders(Borders::ALL)
-        .title_style(Style::default().add_modifier(Modifier::BOLD))
-        .border_style(Style::default().fg(Color::Cyan));
-
-    let title = Paragraph::new(name_upper.as_str())
-        .block(title_block.clone().title(" TRAIL INFO "))
+    let title = Paragraph::new(trail.name.to_uppercase())
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" TRAIL INFO ")
+                .title_style(Style::default().add_modifier(Modifier::BOLD))
+                .border_style(Style::default().fg(Color::Cyan)),
+        )
         .style(
             Style::default()
                 .fg(Color::White)
@@ -149,7 +161,8 @@ fn ui(f: &mut Frame, trail: &Trail) {
     .alignment(Alignment::Left);
     f.render_widget(info, card_layout[1]);
 
-    let (elevation_data, total_gain, total_loss) = generate_elevation_data(trail);
+    let elevation_data = normalize_elevation_for_sparkline(elevation_stats);
+
     let elevation_sparkline = Sparkline::default()
         .block(
             Block::default()
@@ -164,11 +177,11 @@ fn ui(f: &mut Frame, trail: &Trail) {
 
     let stats_text = Line::from(vec![
         Span::styled(
-            format!("↑ Total gain: {}m  ", total_gain),
+            format!("↑ Total gain: {:.0}m  ", elevation_stats.total_gain),
             Style::default().fg(Color::Green),
         ),
         Span::styled(
-            format!("↓ Total loss: {}m", total_loss),
+            format!("↓ Total loss: {:.0}m", elevation_stats.total_loss),
             Style::default().fg(Color::Red),
         ),
     ]);
@@ -263,11 +276,10 @@ fn ui(f: &mut Frame, trail: &Trail) {
         f.render_widget(link, card_layout[6]);
     }
 
-    let now = Local::now();
     let footer_text = Line::from(vec![
         Span::styled("Generated: ", Style::default().fg(Color::Gray)),
         Span::styled(
-            now.format("%Y-%m-%d %H:%M").to_string(),
+            Local::now().format("%Y-%m-%d %H:%M").to_string(),
             Style::default().fg(Color::White),
         ),
     ]);
@@ -308,64 +320,57 @@ fn ui(f: &mut Frame, trail: &Trail) {
     f.render_widget(help, vertical[2]);
 }
 
-fn generate_elevation_data(trail: &Trail) -> (Vec<u64>, u32, u32) {
-    let num_points = 30;
-    let mut data = Vec::new();
-    let mut elevations = Vec::new();
-
-    let seed = simple_hash(&trail.name);
-    let difficulty_multiplier = match trail.difficulty.to_lowercase().as_str() {
-        "difficile" => 1.5,
-        "intermédiaire" | "intermediaire" => 1.2,
-        _ => 1.0,
-    };
-
-    let base_elevation = 200.0;
-    let max_elevation_gain = 400.0 * difficulty_multiplier;
-    let length_factor = (trail.length_km / 10.0).clamp(0.5, 2.0);
-
-    for i in 0..num_points {
-        let t = i as f64 / (num_points - 1) as f64;
-        let progress = t * trail.length_km;
-
-        let noise1 = (seed as f64 * 0.1 + progress * 0.3).sin();
-        let noise2 = (seed as f64 * 0.2 + progress * 0.5).cos();
-        let noise3 = (seed as f64 * 0.3 + progress * 0.7).sin();
-
-        let elevation_variation = noise1 * 0.4 + noise2 * 0.3 + noise3 * 0.3;
-
-        let peak_position = 0.4 + (seed % 100) as f64 / 200.0;
-        let peak_effect = (-((t - peak_position) * 3.0).powi(2)).exp() * 0.6;
-
-        let elevation = base_elevation
-            + elevation_variation * max_elevation_gain * length_factor
-            + peak_effect * max_elevation_gain * 0.8;
-
-        elevations.push(elevation);
-
-        let normalized = ((elevation / (base_elevation + max_elevation_gain * 2.0)) * 100.0)
-            .clamp(5.0, 95.0) as u64;
-        data.push(normalized);
+/// Get elevation data for a trail (cached or fetched)
+fn get_trail_elevation(trail: &Trail) -> ElevationStats {
+    if let Some(cached) = cache::get_cached_elevation(&trail.name, &trail.park) {
+        return calculate_elevation_stats(&cached);
     }
 
-    let mut total_gain = 0.0;
-    let mut total_loss = 0.0;
+    let sampled = sample_coordinates(&trail.coordinates_wgs84, 50);
 
-    for i in 1..elevations.len() {
-        let diff = elevations[i] - elevations[i - 1];
-        if diff > 0.0 {
-            total_gain += diff;
-        } else {
-            total_loss += diff.abs();
+    match fetch_elevation(&sampled) {
+        Ok(elevations) => {
+            // Ignore cache errors - non-critical
+            let _ = cache::cache_elevation(&trail.name, &trail.park, &elevations);
+            calculate_elevation_stats(&elevations)
+        }
+        Err(e) => {
+            println!("Warning: Could not fetch elevation data: {}", e);
+            ElevationStats {
+                min: 0.0,
+                max: 0.0,
+                total_gain: 0.0,
+                total_loss: 0.0,
+                elevations: Vec::new(),
+            }
         }
     }
-
-    (data, total_gain as u32, total_loss as u32)
 }
 
-fn simple_hash(s: &str) -> u32 {
-    s.bytes()
-        .fold(0u32, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u32))
+/// Normalize elevation data to 0-100 range for sparkline display
+fn normalize_elevation_for_sparkline(stats: &ElevationStats) -> Vec<u64> {
+    const DISPLAY_POINTS: usize = 30;
+    const DEFAULT_VALUE: u64 = 50;
+
+    if stats.elevations.is_empty() {
+        return vec![DEFAULT_VALUE; DISPLAY_POINTS];
+    }
+
+    let range = (stats.max - stats.min).max(1.0);
+    let step = stats.elevations.len() as f64 / DISPLAY_POINTS as f64;
+
+    (0..DISPLAY_POINTS)
+        .map(|i| {
+            let idx = (i as f64 * step) as usize;
+            if idx < stats.elevations.len() {
+                let normalized =
+                    ((stats.elevations[idx] - stats.min) / range * 100.0).clamp(5.0, 95.0) as u64;
+                normalized
+            } else {
+                DEFAULT_VALUE
+            }
+        })
+        .collect()
 }
 
 fn calculate_sun_times(lat: f64, lng: f64) -> (String, String, String) {
