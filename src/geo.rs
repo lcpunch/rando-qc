@@ -1,21 +1,26 @@
-use anyhow::{Context, Result};
+use proj::Proj;
+use std::cell::RefCell;
 
 pub const MONTREAL_LAT: f64 = 45.5017;
 pub const MONTREAL_LNG: f64 = -73.5673;
 
-pub fn lambert_to_wgs84(x: f64, y: f64) -> (f64, f64) {
-    lambert_to_wgs84_proj(x, y).unwrap_or_else(|_| lambert_to_wgs84_approx(x, y))
+thread_local! {
+    static TRANSFORMER: RefCell<Option<Proj>> = RefCell::new(
+        Proj::new_known_crs("EPSG:32198", "EPSG:4326", None).ok()
+    );
 }
 
-fn lambert_to_wgs84_proj(x: f64, y: f64) -> Result<(f64, f64)> {
-    let transformer = proj::Proj::new_known_crs("EPSG:32198", "EPSG:4326", None)
-        .context("Failed to create proj transformer")?;
-
-    let (lng, lat) = transformer
-        .convert((x, y))
-        .context("Failed to convert coordinates")?;
-
-    Ok((lat, lng))
+pub fn lambert_to_wgs84(x: f64, y: f64) -> (f64, f64) {
+    TRANSFORMER.with(|transformer_cell| {
+        let transformer_opt = transformer_cell.borrow();
+        if let Some(ref transformer) = *transformer_opt
+            && let Ok((lng, lat)) = transformer.convert((x, y))
+        {
+            return (lat, lng);
+        }
+        drop(transformer_opt);
+        lambert_to_wgs84_approx(x, y)
+    })
 }
 
 fn lambert_to_wgs84_approx(x: f64, y: f64) -> (f64, f64) {
@@ -43,23 +48,49 @@ pub fn distance_km(lat1: f64, lng1: f64, lat2: f64, lng2: f64) -> f64 {
     EARTH_RADIUS_KM * c
 }
 
-pub fn extract_coordinates(geometry: &serde_json::Value) -> Option<(f64, f64)> {
-    let geom_type = geometry.get("type")?.as_str()?;
-    let coords = geometry.get("coordinates")?;
+pub fn extract_all_coordinates(geometry: &serde_json::Value) -> Vec<(f64, f64)> {
+    let geom_type = match geometry.get("type").and_then(|v| v.as_str()) {
+        Some(t) => t,
+        None => return Vec::new(),
+    };
+
+    let coords = match geometry.get("coordinates") {
+        Some(c) => c,
+        None => return Vec::new(),
+    };
 
     match geom_type {
-        "Point" => coords
-            .as_array()?
-            .get(0..2)
-            .and_then(|arr| Some((arr[0].as_f64()?, arr[1].as_f64()?))),
-        "LineString" => coords.as_array()?.first()?.as_array().and_then(|point| {
-            point
-                .get(0..2)
-                .and_then(|arr| Some((arr[0].as_f64()?, arr[1].as_f64()?)))
-        }),
-        _ => coords
-            .as_array()?
-            .get(0..2)
-            .and_then(|arr| Some((arr[0].as_f64()?, arr[1].as_f64()?))),
+        "Point" => {
+            if let Some(arr) = coords.as_array()
+                && arr.len() >= 2
+                && let (Some(x), Some(y)) = (arr[0].as_f64(), arr[1].as_f64())
+            {
+                return [(x, y)].to_vec();
+            }
+            Vec::new()
+        }
+        "LineString" => {
+            let mut points = Vec::new();
+            if let Some(arr) = coords.as_array() {
+                for point in arr {
+                    if let Some(point_arr) = point.as_array()
+                        && point_arr.len() >= 2
+                        && let (Some(x), Some(y)) = (point_arr[0].as_f64(), point_arr[1].as_f64())
+                    {
+                        points.push((x, y));
+                    }
+                }
+            }
+            points
+        }
+        _ => {
+            if let Some(arr) = coords.as_array()
+                && arr.len() >= 2
+                && let (Some(x), Some(y)) = (arr[0].as_f64(), arr[1].as_f64())
+            {
+                return vec![(x, y)];
+            }
+            Vec::new()
+        }
     }
 }

@@ -1,7 +1,9 @@
 mod cache;
+mod card;
 mod cli;
 mod conditions;
 mod geo;
+mod gpx;
 mod icons;
 mod trails;
 mod weather;
@@ -33,6 +35,8 @@ fn run() -> Result<()> {
         Commands::List { .. } => handle_list(&cli)?,
         Commands::Park { name } => handle_park(name)?,
         Commands::Trail { name } => handle_trail(name)?,
+        Commands::Card { name } => handle_card(name)?,
+        Commands::Gpx { name, output } => handle_gpx(name, output.as_deref())?,
     }
 
     Ok(())
@@ -43,13 +47,12 @@ fn handle_list(cli: &Cli) -> Result<()> {
         difficulty: Some(ref diff_str),
         ..
     } = cli.command
+        && trails::Difficulty::from_str(diff_str).is_none()
     {
-        if trails::Difficulty::from_str(diff_str).is_none() {
-            anyhow::bail!(
-                "Invalid difficulty: '{}'. Valid options are: facile, intermediaire, difficile",
-                diff_str
-            );
-        }
+        anyhow::bail!(
+            "Invalid difficulty: '{}'. Valid options are: facile, intermediaire, difficile",
+            diff_str
+        );
     }
 
     let trails = load_trails()?;
@@ -187,6 +190,31 @@ fn print_trail_info(trail: &trails::Trail, show_weather: bool) -> Result<()> {
             );
         }
     }
+
+    Ok(())
+}
+
+fn handle_card(trail_name: &str) -> Result<()> {
+    let trails = load_trails()?;
+    let trail = find_trail_by_name(&trails, trail_name)
+        .ok_or_else(|| anyhow::anyhow!("Trail not found: {}", trail_name))?;
+    card::print_card(trail)?;
+    Ok(())
+}
+
+fn handle_gpx(trail_name: &str, output: Option<&str>) -> Result<()> {
+    let trails = load_trails()?;
+    let trail = find_trail_by_name(&trails, trail_name)
+        .ok_or_else(|| anyhow::anyhow!("Trail not found: {}", trail_name))?;
+
+    let default_path = format!("{}.gpx", trail.name.replace(' ', "_").to_lowercase());
+    let output_path = output.unwrap_or(&default_path);
+    gpx::export_gpx(trail, output_path)?;
+
+    println!("{} Exported: {}", Icons::SUCCESS.green(), output_path);
+    println!("   Trail: {} ({:.0}km)", trail.name, trail.length_km);
+    println!("   Points: {}", trail.coordinates_wgs84.len());
+    println!("   Ready for: Gaia GPS, OsmAnd, AllTrails");
 
     Ok(())
 }

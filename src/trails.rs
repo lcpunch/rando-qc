@@ -1,5 +1,7 @@
 use crate::cache;
-use crate::geo::{distance_km, extract_coordinates, lambert_to_wgs84, MONTREAL_LAT, MONTREAL_LNG};
+use crate::geo::{
+    MONTREAL_LAT, MONTREAL_LNG, distance_km, extract_all_coordinates, lambert_to_wgs84,
+};
 use anyhow::{Context, Result};
 use serde_json::Value;
 
@@ -13,6 +15,7 @@ pub struct Trail {
     pub lat: f64,
     pub lng: f64,
     pub distance_from_mtl: f64,
+    pub coordinates_wgs84: Vec<(f64, f64)>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -108,31 +111,40 @@ pub fn load_trails() -> Result<Vec<Trail>> {
             .unwrap_or(0.0);
         let length_km = length_m / 1000.0;
 
-        if let Some((x, y)) = extract_coordinates(geometry) {
-            let (lat, lng) = lambert_to_wgs84(x, y);
-            let distance_from_mtl = distance_km(lat, lng, MONTREAL_LAT, MONTREAL_LNG);
+        let coordinates_lambert = extract_all_coordinates(geometry);
+        if coordinates_lambert.is_empty() {
+            continue;
+        }
 
-            let trail = Trail {
-                name: name.clone(),
-                park: park.clone(),
-                park_code,
-                difficulty,
-                length_km,
-                lat,
-                lng,
-                distance_from_mtl,
-            };
+        let coordinates_wgs84: Vec<(f64, f64)> = coordinates_lambert
+            .iter()
+            .map(|&(x, y)| lambert_to_wgs84(x, y))
+            .collect();
 
-            let key = (name, park);
-            match trail_map.get_mut(&key) {
-                Some(existing) if trail.length_km > existing.length_km => {
-                    *existing = trail;
-                }
-                None => {
-                    trail_map.insert(key, trail);
-                }
-                _ => {}
+        let (lat, lng) = coordinates_wgs84[0];
+        let distance_from_mtl = distance_km(lat, lng, MONTREAL_LAT, MONTREAL_LNG);
+
+        let trail = Trail {
+            name: name.clone(),
+            park: park.clone(),
+            park_code,
+            difficulty,
+            length_km,
+            lat,
+            lng,
+            distance_from_mtl,
+            coordinates_wgs84,
+        };
+
+        let key = (name, park);
+        match trail_map.get_mut(&key) {
+            Some(existing) if trail.length_km > existing.length_km => {
+                *existing = trail;
             }
+            None => {
+                trail_map.insert(key, trail);
+            }
+            _ => {}
         }
     }
 
@@ -153,34 +165,34 @@ pub fn filter_trails(
     trails
         .iter()
         .filter(|trail| {
-            if let Some(diff) = difficulty {
-                if !diff.matches(&trail.difficulty) {
-                    return false;
-                }
+            if let Some(diff) = difficulty
+                && !diff.matches(&trail.difficulty)
+            {
+                return false;
             }
 
-            if let Some(max_dist) = max_distance {
-                if trail.distance_from_mtl > max_dist {
-                    return false;
-                }
+            if let Some(max_dist) = max_distance
+                && trail.distance_from_mtl > max_dist
+            {
+                return false;
             }
 
-            if let Some(min_len) = min_length {
-                if trail.length_km < min_len {
-                    return false;
-                }
+            if let Some(min_len) = min_length
+                && trail.length_km < min_len
+            {
+                return false;
             }
 
-            if let Some(max_len) = max_length {
-                if trail.length_km > max_len {
-                    return false;
-                }
+            if let Some(max_len) = max_length
+                && trail.length_km > max_len
+            {
+                return false;
             }
 
-            if let Some(park) = park_name {
-                if !trail.park.to_lowercase().contains(&park.to_lowercase()) {
-                    return false;
-                }
+            if let Some(park) = park_name
+                && !trail.park.to_lowercase().contains(&park.to_lowercase())
+            {
+                return false;
             }
 
             true

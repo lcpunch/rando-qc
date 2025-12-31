@@ -24,7 +24,7 @@ impl Weather {
     pub fn description(&self) -> &'static str {
         match self.weather_code {
             0 => "clear sky",
-            1 | 2 | 3 => "partly cloudy",
+            1..=3 => "partly cloudy",
             45 | 48 => "foggy",
             51 | 53 | 55 => "drizzle",
             56 | 57 => "freezing drizzle",
@@ -32,7 +32,7 @@ impl Weather {
             66 | 67 => "freezing rain",
             71 | 73 | 75 => "snow",
             77 => "snow grains",
-            80 | 81 | 82 => "rain showers",
+            80..=82 => "rain showers",
             85 | 86 => "snow showers",
             95 => "thunderstorm",
             96 | 99 => "thunderstorm with hail",
@@ -58,4 +58,3 @@ pub fn get_weather(lat: f64, lng: f64) -> Result<Weather> {
         weather_code: weather_resp.current_weather.weathercode,
     })
 }
-

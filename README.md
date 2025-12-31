@@ -13,6 +13,8 @@ cargo build --release
 - `rando list` - List trails with optional filters
 - `rando park <name>` - Show trails in a specific park
 - `rando trail <name>` - Show details for a specific trail
+- `rando card <name>` - Display trail info card
+- `rando gpx <name>` - Export trail to GPX file
 - `rando update` - Update cached trail data
 
 ## List Trails
@@ -52,6 +54,23 @@ Show detailed info for a trail:
 
 ```bash
 rando trail "Le Scotora"
+```
+
+## Card
+
+Display a formatted info card for a trail:
+
+```bash
+rando card "Le Scotora"
+```
+
+## GPX
+
+Export trail to GPX format:
+
+```bash
+rando gpx "Le Scotora"
+rando gpx "Le Scotora" -o scotora.gpx
 ```
 
 ## Update

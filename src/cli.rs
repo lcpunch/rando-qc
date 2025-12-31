@@ -48,6 +48,21 @@ pub enum Commands {
 
     /// Update cached trail data
     Update,
+
+    /// Display trail info card
+    Card {
+        /// Trail name (partial match)
+        name: String,
+    },
+
+    /// Export trail to GPX file
+    Gpx {
+        /// Trail name (partial match)
+        name: String,
+        /// Output file path
+        #[arg(short, long)]
+        output: Option<String>,
+    },
 }
 
 impl Commands {
