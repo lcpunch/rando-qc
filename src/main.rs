@@ -7,6 +7,7 @@ mod geo;
 mod icons;
 mod services;
 mod trails;
+mod tui;
 
 use crate::icons::Icons;
 use anyhow::Result;
