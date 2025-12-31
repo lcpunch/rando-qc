@@ -2,6 +2,7 @@ mod cache;
 mod cli;
 mod commands;
 mod conditions;
+mod data;
 mod geo;
 mod icons;
 mod services;
@@ -50,6 +51,55 @@ fn run() -> Result<()> {
             println!("   Trail: {} ({:.0}km)", trail.name, trail.length_km);
             println!("   Points: {}", trail.coordinates_wgs84.len());
             println!("   Ready for: Gaia GPS, OsmAnd, AllTrails");
+        }
+        Commands::Weather { trail, week } => {
+            commands::handle_weather(&trail, *week)?;
+        }
+        Commands::Nearby {
+            lat,
+            lng,
+            park,
+            radius,
+        } => {
+            commands::handle_nearby(*lat, *lng, park.clone(), *radius)?;
+        }
+        Commands::Compare { trail1, trail2 } => {
+            commands::handle_compare(&trail1, &trail2)?;
+        }
+        Commands::Random {
+            difficulty,
+            max_distance,
+        } => {
+            commands::handle_random(difficulty.clone(), *max_distance)?;
+        }
+        Commands::Log {
+            trail,
+            time,
+            date,
+            notes,
+        } => {
+            commands::handle_log(&trail, time.clone(), date.clone(), notes.clone())?;
+        }
+        Commands::Stats => {
+            commands::handle_stats()?;
+        }
+        Commands::Streak => {
+            commands::handle_streak()?;
+        }
+        Commands::Daylight { trail } => {
+            commands::handle_daylight(&trail)?;
+        }
+        Commands::Checklist { trail } => {
+            commands::handle_checklist(&trail)?;
+        }
+        Commands::Hunt => {
+            commands::handle_hunt()?;
+        }
+        Commands::Alerts => {
+            commands::handle_alerts()?;
+        }
+        Commands::Share { trail } => {
+            commands::handle_share(&trail)?;
         }
     }
 

@@ -8,6 +8,18 @@ impl Icons {
     pub const ELEVATION: &str = "^^";
     pub const SUN: &str = "[*]";
     pub const ALERT: &str = "[!]";
+    pub const RANDOM: &str = "[?]";
+    pub const STATS: &str = "[#]";
+    pub const STREAK: &str = "[+]";
+    pub const DAYLIGHT: &str = "[*]";
+    pub const CHECKLIST: &str = "[_]";
+    pub const HUNT: &str = "[H]";
+    pub const SHARE: &str = "[>]";
+    pub const WEATHER: &str = "[~]";
+    pub const LOCATION: &str = "[@]";
+    pub const INFO: &str = "[i]";
+    pub const CHECK: &str = "[OK]";
+    pub const CALENDAR: &str = "[#]";
 
     pub fn weather(code: u32) -> &'static str {
         match code {

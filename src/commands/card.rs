@@ -373,7 +373,7 @@ fn normalize_elevation_for_sparkline(stats: &ElevationStats) -> Vec<u64> {
         .collect()
 }
 
-fn calculate_sun_times(lat: f64, lng: f64) -> (String, String, String) {
+pub fn calculate_sun_times(lat: f64, lng: f64) -> (String, String, String) {
     let now = Local::now();
     let day_of_year = now.ordinal() as f64;
     let lat_rad = lat * PI / 180.0;

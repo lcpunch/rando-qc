@@ -1,14 +1,38 @@
+mod alerts;
 mod card;
+mod checklist;
+mod compare;
+mod daylight;
 mod gpx;
+mod hunt;
 mod list;
+mod log;
+mod nearby;
 mod park;
+mod random;
+mod share;
+mod stats;
+mod streak;
 mod trail;
+mod weather;
 
+pub use alerts::handle_alerts;
 pub use card::print_card;
+pub use checklist::handle_checklist;
+pub use compare::handle_compare;
+pub use daylight::handle_daylight;
 pub use gpx::export_gpx;
+pub use hunt::handle_hunt;
 pub use list::handle_list;
+pub use log::handle_log;
+pub use nearby::handle_nearby;
 pub use park::handle_park;
+pub use random::handle_random;
+pub use share::handle_share;
+pub use stats::handle_stats;
+pub use streak::handle_streak;
 pub use trail::handle_trail;
+pub use weather::handle_weather;
 
 use crate::conditions::{format_condition_url, get_park_url};
 use crate::icons::Icons;
