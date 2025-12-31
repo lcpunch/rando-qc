@@ -70,4 +70,3 @@ fn normalize_elevation(elevations: &[f64], total_distance: f64) -> Vec<(f64, f64
         })
         .collect()
 }
-

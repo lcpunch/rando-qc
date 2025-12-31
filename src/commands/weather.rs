@@ -30,7 +30,12 @@ pub fn handle_weather(trail_name: &str, week: bool) -> Result<()> {
 fn handle_week_forecast(trail: &crate::trails::Trail) -> Result<()> {
     let forecast = get_7day_forecast(trail.lat, trail.lng)?;
 
-    println!("\n{}  7-Day Forecast for {} ({})\n", Icons::WEATHER, trail.name.bold(), trail.park);
+    println!(
+        "\n{}  7-Day Forecast for {} ({})\n",
+        Icons::WEATHER,
+        trail.name.bold(),
+        trail.park
+    );
 
     let mut best_days = Vec::new();
 
@@ -65,14 +70,16 @@ fn handle_week_forecast(trail: &crate::trails::Trail) -> Result<()> {
     }
 
     if !best_days.is_empty() {
-        println!("\n  {} Best days: {}",
-            Icons::SUCCESS, 
-            best_days.iter()
+        println!(
+            "\n  {} Best days: {}",
+            Icons::SUCCESS,
+            best_days
+                .iter()
                 .map(|(name, num)| format!("{}{:02}", name, num))
                 .collect::<Vec<_>>()
-                .join(", "));
+                .join(", ")
+        );
     }
 
     Ok(())
 }
-

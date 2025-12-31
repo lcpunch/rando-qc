@@ -4,7 +4,12 @@ use crate::trails::{find_trail_by_name, load_trails};
 use anyhow::Result;
 use colored::Colorize;
 
-pub fn handle_log(trail_name: &str, time: Option<String>, date: Option<String>, notes: Option<String>) -> Result<()> {
+pub fn handle_log(
+    trail_name: &str,
+    time: Option<String>,
+    date: Option<String>,
+    notes: Option<String>,
+) -> Result<()> {
     let trails = load_trails()?;
     let trail = find_trail_by_name(&trails, trail_name)
         .ok_or_else(|| anyhow::anyhow!("Trail not found: {}", trail_name))?;
@@ -26,4 +31,3 @@ pub fn handle_log(trail_name: &str, time: Option<String>, date: Option<String>, 
 
     Ok(())
 }
-

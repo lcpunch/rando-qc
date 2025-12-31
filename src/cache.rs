@@ -61,23 +61,23 @@ pub fn get_cached_elevation(trail_name: &str, park_name: &str) -> Option<Vec<f64
     let path = get_elevation_cache_path().ok()?;
     let data = fs::read_to_string(&path).ok()?;
     let cache: ElevationCache = serde_json::from_str(&data).ok()?;
-    
+
     let key = format!("{}|{}", trail_name, park_name);
     cache.trails.get(&key).cloned()
 }
 
 pub fn cache_elevation(trail_name: &str, park_name: &str, elevations: &[f64]) -> Result<()> {
     let path = get_elevation_cache_path()?;
-    
+
     let mut cache: ElevationCache = fs::read_to_string(&path)
         .ok()
         .and_then(|data| serde_json::from_str(&data).ok())
         .unwrap_or_default();
-    
+
     let key = format!("{}|{}", trail_name, park_name);
     cache.trails.insert(key, elevations.to_vec());
-    
+
     fs::write(&path, serde_json::to_string_pretty(&cache)?)?;
-    
+
     Ok(())
 }

@@ -4,17 +4,23 @@ use crate::trails::load_trails;
 use anyhow::Result;
 use colored::Colorize;
 
-pub fn handle_nearby(lat: Option<f64>, lng: Option<f64>, park: Option<String>, radius: f64) -> Result<()> {
+pub fn handle_nearby(
+    lat: Option<f64>,
+    lng: Option<f64>,
+    park: Option<String>,
+    radius: f64,
+) -> Result<()> {
     let trails = load_trails()?;
 
     let (search_lat, search_lng) = if let (Some(lat), Some(lng)) = (lat, lng) {
         (lat, lng)
     } else if let Some(park_name) = park {
         // Find park center by averaging trail coordinates in that park
-        let park_trails: Vec<_> = trails.iter()
+        let park_trails: Vec<_> = trails
+            .iter()
             .filter(|t| t.park.to_lowercase().contains(&park_name.to_lowercase()))
             .collect();
-        
+
         if park_trails.is_empty() {
             anyhow::bail!("Park not found: {}", park_name);
         }
@@ -26,7 +32,8 @@ pub fn handle_nearby(lat: Option<f64>, lng: Option<f64>, park: Option<String>, r
         anyhow::bail!("Must provide either --lat/--lng or --park");
     };
 
-    let mut nearby_trails: Vec<_> = trails.iter()
+    let mut nearby_trails: Vec<_> = trails
+        .iter()
         .map(|trail| {
             let dist = distance_km(search_lat, search_lng, trail.lat, trail.lng);
             (trail, dist)
@@ -78,4 +85,3 @@ fn format_difficulty(difficulty: &str) -> colored::ColoredString {
         _ => difficulty.normal(),
     }
 }
-

@@ -1,10 +1,10 @@
 use ratatui::{
+    Frame,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     symbols,
     text::{Line, Span},
     widgets::{Axis, Block, Borders, Chart, Dataset, GraphType, Paragraph},
-    Frame,
 };
 
 use super::app::CompareApp;
@@ -33,7 +33,9 @@ fn draw_stats_comparison(frame: &mut Frame, app: &CompareApp, area: Rect) {
     let trail1_block = Block::default()
         .title(Span::styled(
             format!(" {} ", app.trail1_name),
-            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
         ))
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Cyan));
@@ -57,7 +59,9 @@ fn draw_stats_comparison(frame: &mut Frame, app: &CompareApp, area: Rect) {
     let trail2_block = Block::default()
         .title(Span::styled(
             format!(" {} ", app.trail2_name),
-            Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Magenta)
+                .add_modifier(Modifier::BOLD),
         ))
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Magenta));
@@ -81,7 +85,7 @@ fn draw_stats_comparison(frame: &mut Frame, app: &CompareApp, area: Rect) {
 
 fn draw_elevation_chart(frame: &mut Frame, app: &CompareApp, area: Rect) {
     let mut datasets = Vec::new();
-    
+
     if !app.trail1_elevation.is_empty() {
         datasets.push(
             Dataset::default()
@@ -92,7 +96,7 @@ fn draw_elevation_chart(frame: &mut Frame, app: &CompareApp, area: Rect) {
                 .data(&app.trail1_elevation),
         );
     }
-    
+
     if !app.trail2_elevation.is_empty() {
         datasets.push(
             Dataset::default()
@@ -170,4 +174,3 @@ fn draw_help_bar(frame: &mut Frame, area: Rect) {
 
     frame.render_widget(help, area);
 }
-

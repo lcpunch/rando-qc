@@ -1,7 +1,7 @@
 use crate::cache;
 use crate::services::elevation::{fetch_elevation, sample_coordinates};
-use crate::tui;
 use crate::trails::{find_trail_by_name, load_trails};
+use crate::tui;
 use anyhow::Result;
 
 pub fn handle_compare(trail1_name: &str, trail2_name: &str) -> Result<()> {
