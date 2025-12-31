@@ -2,6 +2,8 @@
 
 A CLI tool to find hiking trails in Quebec's Sépaq parks with weather and conditions.
 
+<img width="734" height="627" alt="image" src="https://github.com/user-attachments/assets/32c99aa5-9c43-44fa-9302-de6a0200774e" />
+
 ## Installation
 
 ```bash
