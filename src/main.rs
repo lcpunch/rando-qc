@@ -54,7 +54,7 @@ fn run() -> Result<()> {
             println!("   Ready for: Gaia GPS, OsmAnd, AllTrails");
         }
         Commands::Weather { trail, week } => {
-            commands::handle_weather(&trail, *week)?;
+            commands::handle_weather(trail, *week)?;
         }
         Commands::Nearby {
             lat,
@@ -65,7 +65,7 @@ fn run() -> Result<()> {
             commands::handle_nearby(*lat, *lng, park.clone(), *radius)?;
         }
         Commands::Compare { trail1, trail2 } => {
-            commands::handle_compare(&trail1, &trail2)?;
+            commands::handle_compare(trail1, trail2)?;
         }
         Commands::Random {
             difficulty,
@@ -79,7 +79,7 @@ fn run() -> Result<()> {
             date,
             notes,
         } => {
-            commands::handle_log(&trail, time.clone(), date.clone(), notes.clone())?;
+            commands::handle_log(trail, time.clone(), date.clone(), notes.clone())?;
         }
         Commands::Stats => {
             commands::handle_stats()?;
@@ -88,10 +88,10 @@ fn run() -> Result<()> {
             commands::handle_streak()?;
         }
         Commands::Daylight { trail } => {
-            commands::handle_daylight(&trail)?;
+            commands::handle_daylight(trail)?;
         }
         Commands::Checklist { trail } => {
-            commands::handle_checklist(&trail)?;
+            commands::handle_checklist(trail)?;
         }
         Commands::Hunt => {
             commands::handle_hunt()?;
@@ -100,7 +100,7 @@ fn run() -> Result<()> {
             commands::handle_alerts()?;
         }
         Commands::Share { trail } => {
-            commands::handle_share(&trail)?;
+            commands::handle_share(trail)?;
         }
     }
 

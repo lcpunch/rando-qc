@@ -55,10 +55,10 @@ pub fn sample_coordinates(coordinates: &[(f64, f64)], max_points: usize) -> Vec<
         .collect();
 
     // Always include last point if not already included
-    if let Some(&last) = coordinates.last() {
-        if sampled.last() != Some(&last) {
-            sampled.push(last);
-        }
+    if let Some(&last) = coordinates.last()
+        && sampled.last() != Some(&last)
+    {
+        sampled.push(last);
     }
 
     sampled

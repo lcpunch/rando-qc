@@ -81,11 +81,9 @@ pub fn parse_duration(time_str: &str) -> Result<u32> {
                 total_minutes += current_num.parse::<u32>()? * 60;
                 current_num.clear();
             }
-        } else if ch == 'm' || ch == 'M' {
-            if !current_num.is_empty() {
-                total_minutes += current_num.parse::<u32>()?;
-                current_num.clear();
-            }
+        } else if (ch == 'm' || ch == 'M') && !current_num.is_empty() {
+            total_minutes += current_num.parse::<u32>()?;
+            current_num.clear();
         }
     }
 

@@ -363,9 +363,7 @@ fn normalize_elevation_for_sparkline(stats: &ElevationStats) -> Vec<u64> {
         .map(|i| {
             let idx = (i as f64 * step) as usize;
             if idx < stats.elevations.len() {
-                let normalized =
-                    ((stats.elevations[idx] - stats.min) / range * 100.0).clamp(5.0, 95.0) as u64;
-                normalized
+                ((stats.elevations[idx] - stats.min) / range * 100.0).clamp(5.0, 95.0) as u64
             } else {
                 DEFAULT_VALUE
             }

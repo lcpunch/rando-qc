@@ -17,7 +17,7 @@ pub fn handle_checklist(trail_name: &str) -> Result<()> {
 
     let month = Local::now().month();
     let is_winter = month >= 11 || month <= 3;
-    let is_summer = month >= 6 && month <= 8;
+    let is_summer = (6..=8).contains(&month);
 
     println!(
         "\n{} Gear Checklist: {}\n",
@@ -81,10 +81,10 @@ pub fn handle_checklist(trail_name: &str) -> Result<()> {
         println!("  ☐ Hat");
     }
 
-    if let Some(ref w) = weather {
-        if w.weather_code >= 61 && w.weather_code <= 82 {
-            println!("  ☐ Rain gear (rain expected)");
-        }
+    if let Some(ref w) = weather
+        && w.weather_code >= 61 && w.weather_code <= 82
+    {
+        println!("  ☐ Rain gear (rain expected)");
     }
 
     println!("\nEmergency:");

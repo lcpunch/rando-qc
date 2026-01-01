@@ -14,7 +14,7 @@ pub fn handle_share(trail_name: &str) -> Result<()> {
     let url = if !trail.park_code.is_empty() {
         get_park_url(&trail.park_code)
     } else {
-        format!("https://www.sepaq.com/")
+        "https://www.sepaq.com/".to_string()
     };
 
     let difficulty_display =

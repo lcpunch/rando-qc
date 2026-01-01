@@ -27,12 +27,12 @@ pub fn run_compare_tui(
     loop {
         terminal.draw(|frame| ui::draw_compare(frame, &app))?;
 
-        if let Event::Key(key) = event::read()? {
-            if key.kind == KeyEventKind::Press {
-                match key.code {
-                    KeyCode::Char('q') | KeyCode::Esc | KeyCode::Enter => break,
-                    _ => {}
-                }
+        if let Event::Key(key) = event::read()?
+            && key.kind == KeyEventKind::Press
+        {
+            match key.code {
+                KeyCode::Char('q') | KeyCode::Esc | KeyCode::Enter => break,
+                _ => {}
             }
         }
     }
