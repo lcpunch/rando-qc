@@ -82,7 +82,8 @@ pub fn handle_checklist(trail_name: &str) -> Result<()> {
     }
 
     if let Some(ref w) = weather
-        && w.weather_code >= 61 && w.weather_code <= 82
+        && w.weather_code >= 61
+        && w.weather_code <= 82
     {
         println!("  ☐ Rain gear (rain expected)");
     }
