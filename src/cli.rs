@@ -162,9 +162,7 @@ pub enum Commands {
 impl Commands {
     pub fn get_difficulty(&self) -> Option<Difficulty> {
         match self {
-            Commands::List { difficulty, .. } => {
-                difficulty.as_ref().and_then(|d| Difficulty::from_str(d))
-            }
+            Commands::List { difficulty, .. } => difficulty.as_ref().and_then(|d| d.parse().ok()),
             _ => None,
         }
     }

@@ -1,6 +1,12 @@
 use anyhow::{Context, Result};
 use serde::Deserialize;
 
+/// Maximum points allowed per Open-Meteo elevation API request
+const ELEVATION_BATCH_SIZE: usize = 100;
+
+/// Default number of sample points for elevation profiles
+pub const DEFAULT_SAMPLE_POINTS: usize = 100;
+
 #[derive(Deserialize)]
 struct ElevationResponse {
     elevation: Vec<f64>,
@@ -13,12 +19,9 @@ pub fn fetch_elevation(coordinates: &[(f64, f64)]) -> Result<Vec<f64>> {
     if coordinates.is_empty() {
         return Ok(Vec::new());
     }
-
-    // Open-Meteo allows max 100 points per request
-    const BATCH_SIZE: usize = 100;
     let mut all_elevations = Vec::with_capacity(coordinates.len());
 
-    for chunk in coordinates.chunks(BATCH_SIZE) {
+    for chunk in coordinates.chunks(ELEVATION_BATCH_SIZE) {
         let lats: Vec<String> = chunk.iter().map(|(lat, _)| format!("{:.6}", lat)).collect();
         let lngs: Vec<String> = chunk.iter().map(|(_, lng)| format!("{:.6}", lng)).collect();
 
@@ -84,20 +87,20 @@ pub fn calculate_elevation_stats(elevations: &[f64]) -> ElevationStats {
         };
     }
 
-    let min = elevations.iter().fold(f64::INFINITY, |a, &b| a.min(b));
-    let max = elevations.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+    let min = elevations.iter().copied().reduce(f64::min).unwrap_or(0.0);
+    let max = elevations.iter().copied().reduce(f64::max).unwrap_or(0.0);
 
-    let mut total_gain = 0.0;
-    let mut total_loss = 0.0;
-
-    for i in 1..elevations.len() {
-        let diff = elevations[i] - elevations[i - 1];
-        if diff > 0.0 {
-            total_gain += diff;
-        } else {
-            total_loss += diff.abs();
-        }
-    }
+    let (total_gain, total_loss) =
+        elevations
+            .windows(2)
+            .map(|w| w[1] - w[0])
+            .fold((0.0, 0.0), |(gain, loss), diff| {
+                if diff > 0.0 {
+                    (gain + diff, loss)
+                } else {
+                    (gain, loss + diff.abs())
+                }
+            });
 
     ElevationStats {
         min,

@@ -4,13 +4,16 @@ use crate::geo::{
 };
 use anyhow::{Context, Result};
 use serde_json::Value;
+use std::collections::hash_map::Entry;
+use std::fmt;
+use std::str::FromStr;
 
 #[derive(Debug, Clone)]
 pub struct Trail {
     pub name: String,
     pub park: String,
     pub park_code: String,
-    pub difficulty: String,
+    pub difficulty: Option<Difficulty>,
     pub length_km: f64,
     pub lat: f64,
     pub lng: f64,
@@ -18,31 +21,32 @@ pub struct Trail {
     pub coordinates_wgs84: Vec<(f64, f64)>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Difficulty {
     Facile,
     Intermediaire,
     Difficile,
 }
 
-impl Difficulty {
-    pub fn from_str(s: &str) -> Option<Self> {
+impl FromStr for Difficulty {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "facile" => Some(Difficulty::Facile),
-            "intermédiaire" | "intermediaire" => Some(Difficulty::Intermediaire),
-            "difficile" => Some(Difficulty::Difficile),
-            _ => None,
+            "facile" => Ok(Difficulty::Facile),
+            "intermédiaire" | "intermediaire" => Ok(Difficulty::Intermediaire),
+            "difficile" => Ok(Difficulty::Difficile),
+            _ => Err(()),
         }
     }
+}
 
-    pub fn matches(&self, trail_difficulty: &str) -> bool {
+impl fmt::Display for Difficulty {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Difficulty::Facile => trail_difficulty.eq_ignore_ascii_case("Facile"),
-            Difficulty::Intermediaire => {
-                trail_difficulty.eq_ignore_ascii_case("Intermédiaire")
-                    || trail_difficulty.eq_ignore_ascii_case("Intermediaire")
-            }
-            Difficulty::Difficile => trail_difficulty.eq_ignore_ascii_case("Difficile"),
+            Difficulty::Facile => write!(f, "Facile"),
+            Difficulty::Intermediaire => write!(f, "Intermédiaire"),
+            Difficulty::Difficile => write!(f, "Difficile"),
         }
     }
 }
@@ -102,8 +106,7 @@ pub fn load_trails() -> Result<Vec<Trail>> {
             .and_then(|v| v.as_str())
             .map(|s| s.trim())
             .filter(|s| !s.is_empty())
-            .unwrap_or("Unknown")
-            .to_string();
+            .and_then(|s| s.parse::<Difficulty>().ok());
 
         let length_m = props
             .get("Shape_Leng")
@@ -137,12 +140,12 @@ pub fn load_trails() -> Result<Vec<Trail>> {
         };
 
         let key = (name, park);
-        match trail_map.get_mut(&key) {
-            Some(existing) if trail.length_km > existing.length_km => {
-                *existing = trail;
+        match trail_map.entry(key) {
+            Entry::Occupied(mut e) if trail.length_km > e.get().length_km => {
+                e.insert(trail);
             }
-            None => {
-                trail_map.insert(key, trail);
+            Entry::Vacant(e) => {
+                e.insert(trail);
             }
             _ => {}
         }
@@ -166,7 +169,7 @@ pub fn filter_trails(
         .iter()
         .filter(|trail| {
             if let Some(diff) = difficulty
-                && !diff.matches(&trail.difficulty)
+                && trail.difficulty != Some(diff)
             {
                 return false;
             }

@@ -9,7 +9,7 @@ use rand::thread_rng;
 pub fn handle_random(difficulty: Option<String>, max_distance: Option<f64>) -> Result<()> {
     let trails = load_trails()?;
 
-    let difficulty_filter = difficulty.and_then(|d| Difficulty::from_str(&d));
+    let difficulty_filter = difficulty.and_then(|d| d.parse().ok());
     let filtered = filter_trails(&trails, difficulty_filter, max_distance, None, None, None);
 
     if filtered.is_empty() {
@@ -27,7 +27,7 @@ pub fn handle_random(difficulty: Option<String>, max_distance: Option<f64>) -> R
     println!("  {}", trail.park);
     println!(
         "  {} • {:.1}km • ~{:.0}h",
-        format_difficulty(&trail.difficulty),
+        format_difficulty(trail.difficulty),
         trail.length_km,
         (trail.length_km / 3.0).ceil()
     );
@@ -52,11 +52,11 @@ pub fn handle_random(difficulty: Option<String>, max_distance: Option<f64>) -> R
     Ok(())
 }
 
-fn format_difficulty(difficulty: &str) -> colored::ColoredString {
-    match difficulty.to_lowercase().as_str() {
-        "facile" => difficulty.green(),
-        "intermédiaire" | "intermediaire" => difficulty.yellow(),
-        "difficile" => difficulty.red(),
-        _ => difficulty.normal(),
+fn format_difficulty(difficulty: Option<Difficulty>) -> colored::ColoredString {
+    match difficulty {
+        Some(Difficulty::Facile) => "Facile".green(),
+        Some(Difficulty::Intermediaire) => "Intermédiaire".yellow(),
+        Some(Difficulty::Difficile) => "Difficile".red(),
+        None => "Non spécifié".normal(),
     }
 }

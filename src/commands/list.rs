@@ -9,7 +9,7 @@ pub fn handle_list(cli: &Cli) -> Result<()> {
         difficulty: Some(ref diff_str),
         ..
     } = cli.command
-        && Difficulty::from_str(diff_str).is_none()
+        && diff_str.parse::<Difficulty>().is_err()
     {
         anyhow::bail!(
             "Invalid difficulty: '{}'. Valid options are: facile, intermediaire, difficile",

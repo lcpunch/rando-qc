@@ -1,5 +1,5 @@
 use crate::cache;
-use crate::services::elevation::{fetch_elevation, sample_coordinates};
+use crate::services::elevation::{DEFAULT_SAMPLE_POINTS, fetch_elevation, sample_coordinates};
 use crate::trails::{find_trail_by_name, load_trails};
 use crate::tui;
 use anyhow::Result;
@@ -27,7 +27,7 @@ fn get_trail_elevation(trail: &crate::trails::Trail) -> Result<Vec<f64>> {
         return Ok(cached);
     }
 
-    let sampled = sample_coordinates(&trail.coordinates_wgs84, 100);
+    let sampled = sample_coordinates(&trail.coordinates_wgs84, DEFAULT_SAMPLE_POINTS);
     let elevations = fetch_elevation(&sampled)?;
 
     let _ = cache::cache_elevation(&trail.name, &trail.park, &elevations);

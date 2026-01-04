@@ -83,22 +83,7 @@ impl DailyWeather {
     }
 
     pub fn icon(&self) -> &'static str {
-        match self.weather_code {
-            0 => "☼",
-            1..=3 => "◐",
-            45 | 48 => "≡",
-            51 | 53 | 55 => "~",
-            56 | 57 => "~",
-            61 | 63 | 65 => "\\",
-            66 | 67 => "\\",
-            71 | 73 | 75 => "*",
-            77 => "*",
-            80..=82 => "~",
-            85 | 86 => "*",
-            95 => "^",
-            96 | 99 => "^",
-            _ => "?",
-        }
+        crate::icons::Icons::weather(self.weather_code)
     }
 }
 
@@ -131,20 +116,26 @@ pub fn get_7day_forecast(lat: f64, lng: f64) -> Result<Vec<DailyWeather>> {
         .json()
         .context("Failed to parse forecast response")?;
 
-    let mut daily_weather = Vec::new();
-    for i in 0..forecast_resp.daily.time.len() {
-        let date_str = &forecast_resp.daily.time[i];
-        let date =
-            NaiveDate::parse_from_str(date_str, "%Y-%m-%d").context("Failed to parse date")?;
-
-        daily_weather.push(DailyWeather {
-            date,
-            max_temp: forecast_resp.daily.temperature_2m_max[i],
-            precipitation: forecast_resp.daily.precipitation_sum[i],
-            wind_speed: forecast_resp.daily.windspeed_10m_max[i],
-            weather_code: forecast_resp.daily.weathercode[i],
-        });
-    }
-
-    Ok(daily_weather)
+    let daily = &forecast_resp.daily;
+    daily
+        .time
+        .iter()
+        .zip(&daily.temperature_2m_max)
+        .zip(&daily.precipitation_sum)
+        .zip(&daily.windspeed_10m_max)
+        .zip(&daily.weathercode)
+        .map(
+            |((((time, &max_temp), &precipitation), &wind_speed), &weather_code)| {
+                let date =
+                    NaiveDate::parse_from_str(time, "%Y-%m-%d").context("Failed to parse date")?;
+                Ok(DailyWeather {
+                    date,
+                    max_temp,
+                    precipitation,
+                    wind_speed,
+                    weather_code,
+                })
+            },
+        )
+        .collect()
 }
