@@ -51,10 +51,10 @@ pub fn handle_stats() -> Result<()> {
     println!("  Trails completed: {}\n", trails.len());
 
     if let Some(hike) = longest {
-        let duration_str = hike
-            .duration_minutes
-            .map(|m| format!("{}h{}m", m / 60, m % 60))
-            .unwrap_or_else(|| "unknown".to_string());
+        let duration_str = match hike.duration_minutes {
+            Some(m) => format!("{}h{}m", m / 60, m % 60),
+            None => "unknown".into(),
+        };
         println!(
             "  Longest hike:     {} ({:.1}km, {})",
             hike.trail_name.bold(),

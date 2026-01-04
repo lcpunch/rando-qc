@@ -8,7 +8,24 @@ use crossterm::{
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::{Terminal, backend::CrosstermBackend};
-use std::io;
+use std::io::{self, Stdout};
+
+/// RAII guard for terminal state cleanup
+struct TerminalGuard {
+    terminal: Terminal<CrosstermBackend<Stdout>>,
+}
+
+impl Drop for TerminalGuard {
+    fn drop(&mut self) {
+        let _ = disable_raw_mode();
+        let _ = execute!(
+            self.terminal.backend_mut(),
+            LeaveAlternateScreen,
+            DisableMouseCapture
+        );
+        let _ = self.terminal.show_cursor();
+    }
+}
 
 pub fn run_compare_tui(
     trail1: &Trail,
@@ -20,12 +37,13 @@ pub fn run_compare_tui(
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
+    let terminal = Terminal::new(backend)?;
 
+    let mut guard = TerminalGuard { terminal };
     let app = app::CompareApp::new(trail1, trail2, elev1, elev2);
 
     loop {
-        terminal.draw(|frame| ui::draw_compare(frame, &app))?;
+        guard.terminal.draw(|frame| ui::draw_compare(frame, &app))?;
 
         if let Event::Key(key) = event::read()?
             && key.kind == KeyEventKind::Press
@@ -36,14 +54,6 @@ pub fn run_compare_tui(
             }
         }
     }
-
-    disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    )?;
-    terminal.show_cursor()?;
 
     Ok(())
 }

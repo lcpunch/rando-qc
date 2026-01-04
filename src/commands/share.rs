@@ -17,12 +17,10 @@ pub fn handle_share(trail_name: &str) -> Result<()> {
         "https://www.sepaq.com/".to_string()
     };
 
-    let difficulty_display =
-        if trail.difficulty.trim().is_empty() || trail.difficulty.eq_ignore_ascii_case("Unknown") {
-            "Unknown"
-        } else {
-            &trail.difficulty
-        };
+    let difficulty_display = trail
+        .difficulty
+        .map(|d| d.to_string())
+        .unwrap_or_else(|| "Unknown".to_string());
 
     let hours = (trail.length_km / 3.0).ceil() as u32;
     let estimated_time = if hours >= 2 {

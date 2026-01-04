@@ -1,6 +1,7 @@
 use crate::services::elevation::fetch_elevation;
 use crate::trails::Trail;
 use anyhow::Result;
+use std::fmt::Write;
 use std::fs;
 
 pub fn export_gpx(trail: &Trail, output_path: &str) -> Result<()> {
@@ -14,34 +15,40 @@ pub fn export_gpx(trail: &Trail, output_path: &str) -> Result<()> {
         vec![0.0; trail.coordinates_wgs84.len()]
     });
 
-    let mut gpx = String::new();
+    let difficulty_str = trail
+        .difficulty
+        .map(|d| d.to_string())
+        .unwrap_or_else(|| "Unknown".to_string());
 
-    gpx.push_str("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-    gpx.push_str("<gpx version=\"1.1\" creator=\"rando-qc\">\n");
-    gpx.push_str("  <metadata>\n");
-    gpx.push_str(&format!("    <name>{}</name>\n", escape_xml(&trail.name)));
-    gpx.push_str(&format!(
-        "    <desc>{} - {} - {:.1}km</desc>\n",
+    let mut gpx = String::new();
+    writeln!(gpx, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>")?;
+    writeln!(gpx, "<gpx version=\"1.1\" creator=\"rando-qc\">")?;
+    writeln!(gpx, "  <metadata>")?;
+    writeln!(gpx, "    <name>{}</name>", escape_xml(&trail.name))?;
+    writeln!(
+        gpx,
+        "    <desc>{} - {} - {:.1}km</desc>",
         escape_xml(&trail.park),
-        escape_xml(&trail.difficulty),
+        escape_xml(&difficulty_str),
         trail.length_km
-    ));
-    gpx.push_str("  </metadata>\n");
-    gpx.push_str("  <trk>\n");
-    gpx.push_str(&format!("    <name>{}</name>\n", escape_xml(&trail.name)));
-    gpx.push_str("    <trkseg>\n");
+    )?;
+    writeln!(gpx, "  </metadata>")?;
+    writeln!(gpx, "  <trk>")?;
+    writeln!(gpx, "    <name>{}</name>", escape_xml(&trail.name))?;
+    writeln!(gpx, "    <trkseg>")?;
 
     for (i, (lat, lng)) in trail.coordinates_wgs84.iter().enumerate() {
         let ele = elevations.get(i).unwrap_or(&0.0);
-        gpx.push_str(&format!(
-            "      <trkpt lat=\"{:.6}\" lon=\"{:.6}\"><ele>{:.1}</ele></trkpt>\n",
+        writeln!(
+            gpx,
+            "      <trkpt lat=\"{:.6}\" lon=\"{:.6}\"><ele>{:.1}</ele></trkpt>",
             lat, lng, ele
-        ));
+        )?;
     }
 
-    gpx.push_str("    </trkseg>\n");
-    gpx.push_str("  </trk>\n");
-    gpx.push_str("</gpx>\n");
+    writeln!(gpx, "    </trkseg>")?;
+    writeln!(gpx, "  </trk>")?;
+    writeln!(gpx, "</gpx>")?;
 
     fs::write(output_path, gpx)?;
     Ok(())

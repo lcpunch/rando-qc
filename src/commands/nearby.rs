@@ -1,6 +1,6 @@
 use crate::geo::distance_km;
 use crate::icons::Icons;
-use crate::trails::load_trails;
+use crate::trails::{Difficulty, load_trails};
 use anyhow::Result;
 use colored::Colorize;
 
@@ -63,7 +63,7 @@ pub fn handle_nearby(
     );
 
     for (trail, dist) in nearby_trails {
-        let difficulty_display = format_difficulty(&trail.difficulty);
+        let difficulty_display = format_difficulty(trail.difficulty);
         println!(
             "  {:.1}km   {} ({}) - {}, {:.1}km",
             dist,
@@ -77,11 +77,11 @@ pub fn handle_nearby(
     Ok(())
 }
 
-fn format_difficulty(difficulty: &str) -> colored::ColoredString {
-    match difficulty.to_lowercase().as_str() {
-        "facile" => difficulty.green(),
-        "intermédiaire" | "intermediaire" => difficulty.yellow(),
-        "difficile" => difficulty.red(),
-        _ => difficulty.normal(),
+fn format_difficulty(difficulty: Option<Difficulty>) -> colored::ColoredString {
+    match difficulty {
+        Some(Difficulty::Facile) => "Facile".green(),
+        Some(Difficulty::Intermediaire) => "Intermédiaire".yellow(),
+        Some(Difficulty::Difficile) => "Difficile".red(),
+        None => "Non spécifié".normal(),
     }
 }

@@ -24,9 +24,13 @@ pub fn handle_checklist(trail_name: &str) -> Result<()> {
         Icons::CHECKLIST,
         trail.name.bold()
     );
+    let difficulty_display = trail
+        .difficulty
+        .map(|d| d.to_string())
+        .unwrap_or_else(|| "Unknown".to_string());
     println!(
         "Based on: {}, {:.1}km, ~{:.0}h, {}\n",
-        trail.difficulty,
+        difficulty_display,
         trail.length_km,
         estimated_hours,
         month_name(month)

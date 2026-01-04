@@ -100,12 +100,10 @@ fn ui(f: &mut Frame, trail: &Trail, elevation_stats: &ElevationStats) {
         ])
         .split(card_area);
 
-    let difficulty_display =
-        if trail.difficulty.trim().is_empty() || trail.difficulty.eq_ignore_ascii_case("Unknown") {
-            "Non spécifié"
-        } else {
-            &trail.difficulty
-        };
+    let difficulty_display = trail
+        .difficulty
+        .map(|d| d.to_string())
+        .unwrap_or_else(|| "Non spécifié".to_string());
 
     let estimated_hours = (trail.length_km / 3.0).ceil() as u32;
     let estimated_time = if estimated_hours >= 2 {
@@ -150,7 +148,7 @@ fn ui(f: &mut Frame, trail: &Trail, elevation_stats: &ElevationStats) {
         ]),
         Line::from(vec![
             Span::styled("Difficulty: ", Style::default().fg(Color::Gray)),
-            Span::styled(difficulty_display, Style::default().fg(Color::Yellow)),
+            Span::styled(&difficulty_display, Style::default().fg(Color::Yellow)),
         ]),
         Line::from(vec![
             Span::styled("Estimated time: ", Style::default().fg(Color::Gray)),

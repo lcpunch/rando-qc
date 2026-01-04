@@ -38,8 +38,14 @@ impl CompareApp {
             trail2_park: trail2.park.clone(),
             trail1_length: len1,
             trail2_length: len2,
-            trail1_difficulty: trail1.difficulty.clone(),
-            trail2_difficulty: trail2.difficulty.clone(),
+            trail1_difficulty: trail1
+                .difficulty
+                .map(|d| d.to_string())
+                .unwrap_or_else(|| "Unknown".to_string()),
+            trail2_difficulty: trail2
+                .difficulty
+                .map(|d| d.to_string())
+                .unwrap_or_else(|| "Unknown".to_string()),
             trail1_gain: stats1.total_gain,
             trail2_gain: stats2.total_gain,
             trail1_max: stats1.max,

@@ -1,7 +1,7 @@
 use crate::conditions::{format_condition_url, get_park_url};
 use crate::icons::Icons;
 use crate::services::weather::get_weather;
-use crate::trails::{find_trail_by_name, load_trails};
+use crate::trails::{Difficulty, find_trail_by_name, load_trails};
 use anyhow::Result;
 use colored::{ColoredString, Colorize};
 
@@ -13,12 +13,10 @@ pub fn handle_trail(trail_name: &str) -> Result<()> {
     println!("\n{} {}", Icons::TRAIL.green(), trail.name.bold());
     println!("  Park: {}", trail.park);
 
-    let difficulty_display =
-        if trail.difficulty.trim().is_empty() || trail.difficulty.eq_ignore_ascii_case("Unknown") {
-            "Non spécifié".normal()
-        } else {
-            format_difficulty(&trail.difficulty)
-        };
+    let difficulty_display = match trail.difficulty {
+        Some(diff) => format_difficulty(diff),
+        None => "Non spécifié".normal(),
+    };
 
     println!("  Difficulty: {}", difficulty_display);
     println!("  Length: {:.1}km", trail.length_km);
@@ -49,11 +47,10 @@ pub fn handle_trail(trail_name: &str) -> Result<()> {
     Ok(())
 }
 
-fn format_difficulty(difficulty: &str) -> ColoredString {
-    match difficulty.to_lowercase().as_str() {
-        "facile" => difficulty.green(),
-        "intermédiaire" | "intermediaire" => difficulty.yellow(),
-        "difficile" => difficulty.red(),
-        _ => difficulty.normal(),
+fn format_difficulty(difficulty: Difficulty) -> ColoredString {
+    match difficulty {
+        Difficulty::Facile => "Facile".green(),
+        Difficulty::Intermediaire => "Intermédiaire".yellow(),
+        Difficulty::Difficile => "Difficile".red(),
     }
 }
